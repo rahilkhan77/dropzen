@@ -11,12 +11,19 @@ type Mail = {
 
 async function transport() {
   if (!env.SMTP_HOST) return null;
+  if (env.SMTP_USER && !env.SMTP_PASSWORD) {
+    log("warn", "email not sent (SMTP_PASSWORD missing)");
+    return null;
+  }
   const nodemailer = await import("nodemailer");
   return nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: env.SMTP_SECURE,
     auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASSWORD } : undefined,
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 8000,
   });
 }
 
@@ -44,11 +51,16 @@ async function send(mail: Mail) {
   const from = env.SMTP_FROM || `${settings.companyName} <noreply@localhost>`;
   const smtp = await transport();
   if (!smtp) {
-    log("info", "email:dev", { to: mail.to, subject: mail.subject, text: mail.text });
+    if (!isProd) log("info", "email:dev", { to: mail.to, subject: mail.subject, text: mail.text });
+    else log("warn", "email not sent", { to: mail.to, subject: mail.subject });
     return;
   }
-  await smtp.sendMail({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html });
-  log("info", "email sent", { to: mail.to, subject: mail.subject, production: isProd });
+  try {
+    await smtp.sendMail({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html });
+    log("info", "email sent", { to: mail.to, subject: mail.subject, production: isProd });
+  } catch (err) {
+    log("error", "email send failed", { to: mail.to, subject: mail.subject, err: err instanceof Error ? err.message : "error" });
+  }
 }
 
 export const EmailService = {
