@@ -1,0 +1,12 @@
+backend/uploads
+backend/data
+backend/dist
+data
+uploads
+.env
+.env.*
+!.env.example
+.git
+.next
+*.dump
+*.db

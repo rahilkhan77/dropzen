@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dropzen
+      POSTGRES_PASSWORD: dropzen
+      POSTGRES_DB: dropzen
+    ports:
+      - "5432:5432"
+    volumes:
+      - dropzen_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dropzen -d dropzen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dropzen_pg:
